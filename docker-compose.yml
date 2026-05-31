@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: litesurvey-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    environment:
+      - DATABASE_URL=sqlite:///./data/litesurvey.db
+      - UPLOAD_DIR=/app/uploads
+      - CORS_ORIGINS=http://localhost,http://localhost:80
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/surveys?page=1&page_size=1')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: litesurvey-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
