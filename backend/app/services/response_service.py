@@ -123,7 +123,17 @@ def validate_matrix(question: dict, answer: dict) -> list[str]:
     errors = []
 
     if question.get("required"):
-        missing_rows = [r for r in rows if r["id"] not in matrix]
+        def _row_incomplete(row_id: str) -> bool:
+            if row_id not in matrix:
+                return True
+            val = matrix[row_id]
+            if q_type == "matrix_multi":
+                return not isinstance(val, list) or len(val) == 0
+            if q_type == "matrix_rating":
+                return not isinstance(val, (int, float)) or val < 1
+            return val is None or val == ""
+
+        missing_rows = [r for r in rows if _row_incomplete(r["id"])]
         if missing_rows:
             names = "、".join(r["label"] for r in missing_rows[:3])
             errors.append(f"题目「{question['title']}」请完成以下行的选择：{names}")
@@ -140,6 +150,8 @@ def validate_matrix(question: dict, answer: dict) -> list[str]:
         elif q_type == "matrix_multi":
             if not isinstance(val, list):
                 errors.append(f"题目「{question['title']}」行「{row['label']}」格式错误")
+            elif len(val) == 0:
+                errors.append(f"题目「{question['title']}」行「{row['label']}」至少选择一项")
             else:
                 invalid = [v for v in val if v not in valid_col_ids]
                 if invalid:
